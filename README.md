@@ -5,18 +5,24 @@ A simple WebSocket-based chat application with message history persistence. The 
 ## Features
 
 - WebSocket real-time communication
-- Message history stored on the server
+- Message history stored on the server(in-memory)
 - Simple, clean interface
 
 ## Project Structure
 
 ```
 ChatBot/
-├── server.py          # WebSocket server (Python)
-├── client.html        # HTML interface
-├── client.js          # Client-side WebSocket logic (javascript)
-├── requirements.txt   # Python dependencies
-└── README.md          # This file
+├── client.html                        # HTML interface
+├── client.js                          # Client-side WebSocket logic
+├── requirements.txt                   # Python dependencies
+├── src/
+│   ├── server.py                      # WebSocket server (main entry point)
+│   ├── models/
+│   │   └── message.py                 # Message model with sender types
+│   └── persistance/
+│       ├── ClientDataDb.py            # Abstract database interface
+│       └── ClientDataInMemDb.py       # In-memory database implementation
+└── README.md                          # This file
 ```
 
 ## Requirements
@@ -48,7 +54,7 @@ pip install -r requirements.txt
 ### 1. Start the Server
 
 ```bash
-python server.py
+python src/server.py
 ```
 
 The server will start on `localhost:8765`.
