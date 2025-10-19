@@ -32,7 +32,6 @@ function getOrCreateClientId() {
 
 function connect() {
     clientId = getOrCreateClientId();
-
     ws = new WebSocket('ws://localhost:8765');
 
     ws.onopen = () => {
@@ -52,14 +51,27 @@ function connect() {
         const data = JSON.parse(event.data);
 
         if (data.type === 'history') {
-            addMessage('System: Loading message history...');
+            addMessage('System: Loading message history...', 'system');
+            console.log('Received history:', data.messages);
             data.messages.forEach(msg => {
-                addMessage(`You: ${msg}`);
+                console.log('Processing message:', msg, 'Type:', typeof msg);
+                // Handle both old format (plain string) and new format (object with sender/content)
+                if (typeof msg === 'string') {
+                    // Old format - plain string
+                    addMessage(`You: ${msg}`, 'user');
+                } else if (msg && typeof msg === 'object' && msg.sender && msg.content) {
+                    // New format - object with sender and content
+                    const sender = msg.sender === 'user' ? 'You' : 'System';
+                    addMessage(`${sender}: ${msg.content}`, msg.sender);
+                } else {
+                    console.error('Invalid message format:', msg);
+                    addMessage(`You: ${JSON.stringify(msg)}`, 'user');
+                }
             });
         } else if (data.type === 'message') {
-            addMessage(`System: ${data.message}`);
+            addMessage(`System: ${data.message}`, 'system');
         } else if (data.type === 'error') {
-            addMessage(`Error: ${data.message}`);
+            addMessage(`Error: ${data.message}`, 'error');
         }
     };
 
@@ -95,9 +107,19 @@ function sendMessage() {
     messageInput.value = '';
 }
 
-function addMessage(message) {
+function addMessage(message, sender = 'user') {
     const messageEl = document.createElement('div');
     messageEl.textContent = message;
+
+    // Add CSS class based on sender
+    if (sender === 'system') {
+        messageEl.className = 'message-system';
+    } else if (sender === 'user') {
+        messageEl.className = 'message-user';
+    } else if (sender === 'error') {
+        messageEl.className = 'message-error';
+    }
+
     messagesDiv.appendChild(messageEl);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
