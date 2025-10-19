@@ -12,10 +12,11 @@ A simple WebSocket-based chat application with message history persistence. The 
 
 ```
 ChatBot/
-├── server.py       # WebSocket server (Python)
-├── client.html     # HTML interface
-├── client.js       # Client-side WebSocket logic (javascript)
-└── README.md       # This file
+├── server.py          # WebSocket server (Python)
+├── client.html        # HTML interface
+├── client.js          # Client-side WebSocket logic (javascript)
+├── requirements.txt   # Python dependencies
+└── README.md          # This file
 ```
 
 ## Requirements
@@ -25,15 +26,21 @@ ChatBot/
 
 ## Installation
 
-1. Install the required Python package:
+1. Clone the repository:
 ```bash
-pip install websockets
+git clone https://github.com/daniela-veloz/WebSocketChat.git
+cd WebSocketChat
 ```
 
-Or if using a virtual environment:
+2. (Optional) Create and activate a virtual environment:
 ```bash
-source .venv/bin/activate
-pip install websockets
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
 ## Usage

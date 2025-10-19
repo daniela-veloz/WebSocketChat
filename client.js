@@ -32,7 +32,6 @@ function getOrCreateClientId() {
 
 function connect() {
     clientId = getOrCreateClientId();
-
     ws = new WebSocket('ws://localhost:8765');
 
     ws.onopen = () => {
@@ -54,7 +53,8 @@ function connect() {
         if (data.type === 'history') {
             addMessage('System: Loading message history...');
             data.messages.forEach(msg => {
-                addMessage(`You: ${msg}`);
+                const sender = msg.sender === 'user' ? 'You' : 'System';
+                addMessage(`${sender}: ${msg.content}`);
             });
         } else if (data.type === 'message') {
             addMessage(`System: ${data.message}`);
@@ -65,7 +65,6 @@ function connect() {
 
     ws.onerror = (error) => {
         addMessage('System: Connection error');
-        console.error('WebSocket error:', error);
     };
 
     ws.onclose = () => {
