@@ -5,8 +5,8 @@ from typing import Set, Optional
 import websockets
 import logging
 
-from src.persistance.ClientDataInMemDb import ClientDataInMemDb
-from src.models.message import MessageSender
+from persistance.ClientDataInMemDb import ClientDataInMemDb
+from models.message import MessageSender
 
 
 class ChatServer:
