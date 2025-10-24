@@ -1,7 +1,7 @@
 from typing import Dict, List
 
-from src.persistance.ClientDataDb import ClientDataDb
-from src.models.message import Message, MessageSender
+from persistance.ClientDataDb import ClientDataDb
+from models.message import Message, MessageSender
 
 
 class ClientDataInMemDb(ClientDataDb):

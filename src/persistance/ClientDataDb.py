@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from src.models.message import Message, MessageSender
+from models.message import Message, MessageSender
 
 
 class ClientDataDb(ABC):
