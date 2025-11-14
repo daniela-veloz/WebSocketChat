@@ -1,27 +1,31 @@
 # WebSocket Chat Application
 
-A simple WebSocket-based chat application with message history persistence. The client automatically generates a unique ID and stores messages on the server, allowing users to retrieve their chat history when they reconnect.
+A simple WebSocket-based chat application with message history persistence using SQLite. The client automatically generates a unique ID and stores messages on the server, allowing users to retrieve their chat history when they reconnect.
 
 ## Features
 
 - WebSocket real-time communication
-- Message history stored on the server(in-memory)
+- Message history stored persistently in SQLite database
+- Flask web server for serving the client interface
 - Simple, clean interface
+- Both in-memory and SQLite storage implementations available
 
 ## Project Structure
 
 ```
 ChatBot/
+├── main.py                            # Main entry point (runs both servers)
+├── server.py                          # WebSocket server
+├── web_server.py                      # Flask web server
 ├── client.html                        # HTML interface
 ├── client.js                          # Client-side WebSocket logic
 ├── requirements.txt                   # Python dependencies
-├── src/
-│   ├── server.py                      # WebSocket server (main entry point)
-│   ├── models/
-│   │   └── message.py                 # Message model with sender types
-│   └── persistance/
-│       ├── ClientDataDb.py            # Abstract database interface
-│       └── ClientDataInMemDb.py       # In-memory database implementation
+├── models/
+│   └── message.py                     # Message model with sender types
+├── persistance/
+│   ├── ClientDataDb.py                # Abstract database interface
+│   ├── ClientDataInMemDb.py           # In-memory database implementation
+│   └── ClientDataSqliteDb.py          # SQLite database implementation
 └── README.md                          # This file
 ```
 
@@ -29,6 +33,7 @@ ChatBot/
 
 - Python 3.7+
 - `websockets` library
+- `flask` library
 
 ## Installation
 
@@ -51,47 +56,60 @@ pip install -r requirements.txt
 
 ## Usage
 
-### 1. Start the Server
+### 1. Start the Application
 
 ```bash
-python src/server.py
+python main.py
 ```
 
-The server will start on `localhost:8765`.
+This will start both:
+- Flask web server on `http://localhost:5000`
+- WebSocket server on `ws://localhost:8765`
 
 ### 2. Open the Client
 
-Open `client.html` in your web browser:
-
-```bash
-open client.html
-```
-
-Or use Python's built-in HTTP server:
-```bash
-python -m http.server 8000
-```
-Then navigate to: `http://localhost:8000/client.html`
+Navigate to `http://localhost:5000` in your web browser.
 
 ### 3. Start Chatting
 
-- The client automatically connects to the server when the page loads
+- The client automatically connects to the WebSocket server when the page loads
 - Type your message in the input field and press Enter or click Send
-- Your messages are stored on the server and will be available when you reconnect
+- Your messages are stored persistently in a SQLite database (`webchat.db`)
+- Messages will be available when you reconnect
 - Each client is assigned a unique ID stored in localStorage
 
 ## How It Works
 
 ### Server Architecture
 
-The server (`server.py`) uses two data structures:
-- `active_connections`: A set tracking active WebSocket connections
-- `message_history`: A dictionary mapping client IDs to their message lists
+The application runs two servers concurrently:
+
+1. **Flask Web Server** (`web_server.py`):
+   - Serves static files (client.html, client.js)
+   - Runs on port 5000
+   - Handles HTTP requests
+
+2. **WebSocket Server** (`server.py`):
+   - Handles real-time bidirectional communication
+   - Manages active connections
+   - Persists messages to SQLite database
+   - Runs on port 8765
 
 **Message Protocol:**
-- `init`: Client sends client_id, server responds with message history
-- `message`: Client sends message content, server stores it and sends acknowledgment
+- `init`: Client sends client_id, server responds with message history from database
+- `message`: Client sends message content, server stores it in SQLite and sends acknowledgment
 - `error`: Server sends error messages to client
+
+### Database Architecture
+
+The application uses a flexible storage system:
+- `ClientDataDb`: Abstract interface for database operations
+- `ClientDataSqliteDb`: SQLite implementation with persistent storage (default)
+- `ClientDataInMemDb`: In-memory implementation for testing/development
+
+SQLite schema:
+- `clients` table: Stores client_id
+- `messages` table: Stores messages with client_id, sender, content, and timestamp
 
 ### Client Architecture
 
@@ -103,11 +121,24 @@ The client (`client.js`) automatically:
 
 ## Configuration
 
-You can modify the server configuration in `server.py`:
+You can modify the server configuration in `main.py`:
 
 ```python
-HOST = "localhost"  # Server host
-PORT = 8765         # Server port
+# Flask web server
+run_web_server(host='0.0.0.0', port=5000)
+
+# WebSocket server
+server = ChatServer(host="localhost", port=8765)
+```
+
+To switch between database implementations, edit `server.py`:
+
+```python
+# Use SQLite (persistent storage)
+self.client_db = ClientDataSqliteDb()
+
+# Or use in-memory storage
+# self.client_db = ClientDataInMemDb()
 ```
 
 ## Technical Justification
@@ -124,21 +155,23 @@ WebSocket was chosen over HTTP/REST for the following reasons:
 
 **Alternative considered**: HTTP with polling would be simpler but introduces latency and higher server load.
 
-### Why In-Memory Storage?
+### Why SQLite Storage?
 
-The application uses Python dictionaries to store message history in memory:
+The application uses SQLite for persistent message storage:
 
-- **Simplicity**: No database setup, configuration, or dependencies required
-- **Performance**: Instant read/write operations with O(1) lookup time
-- **Development speed**: Perfect for prototyping and learning WebSocket concepts
-- **Minimal overhead**: No database connection management or query optimization needed
+- **Persistent storage**: Messages survive server restarts
+- **Zero configuration**: No separate database server needed
+- **Lightweight**: Single file database, included in Python standard library
+- **ACID compliance**: Reliable data integrity with transaction support
+- **Performance**: Fast for single-user and small-scale applications
+- **Portability**: Database is a single file that can be easily backed up
 
 **Trade-offs**:
-- Messages are lost when the server restarts
-- No scalability across multiple server instances
-- Limited by available RAM
+- Not suitable for high-concurrency scenarios (thousands of simultaneous writes)
+- Limited scalability for distributed systems
+- Single file can become large over time
 
-**When to migrate**: For production use, replace with Redis (for speed) or PostgreSQL/MongoDB (for persistence and complex queries).
+**Alternative implementation available**: The codebase includes `ClientDataInMemDb` for in-memory storage, useful for testing or when persistence is not required.
 
 ### Why This Message Protocol?
 
@@ -167,9 +200,26 @@ The JSON-based message protocol uses a simple `type` field to distinguish messag
 
 **Error: "address already in use"**
 
-If you get this error, another process is using port 8765. Find and kill it:
+If you get this error, another process is using port 8765 or 5000. Find and kill it:
 ```bash
+# For WebSocket server (port 8765)
 lsof -ti:8765 | xargs kill
+
+# For Flask server (port 5000)
+lsof -ti:5000 | xargs kill
 ```
 
-Or change the `PORT` in `server.py` to a different value.
+Or change the ports in `main.py` to different values.
+
+**Database locked error**
+
+If you see SQLite database locked errors:
+- Ensure only one instance of the server is running
+- Check that no other process has the `webchat.db` file open
+- The application uses `check_same_thread=False` to allow multi-threaded access
+
+**WebSocket connection refused**
+
+- Ensure both servers are running (check `main.py` output)
+- Verify WebSocket URL in `client.js` matches your server configuration
+- Check browser console for detailed error messages

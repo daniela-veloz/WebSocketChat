@@ -5,16 +5,16 @@ from typing import Set, Optional
 import websockets
 import logging
 
-from persistance.ClientDataInMemDb import ClientDataInMemDb
 from models.message import MessageSender
+from persistance.ClientDataSqliteDb import ClientDataSqliteDb
 
 
-class ChatServer:
+class WebSocketServer:
     def __init__(self, host: str = "localhost", port: int = 8765):
         self.host = host
         self.port = port
         self.active_connections: Set[websockets.WebSocketServerProtocol] = set()
-        self.client_db = ClientDataInMemDb()
+        self.client_db = ClientDataSqliteDb()
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
 
@@ -94,7 +94,7 @@ class ChatServer:
 
 
 async def main() -> None:
-    server = ChatServer(host="localhost", port=8765)
+    server = WebSocketServer(host="localhost", port=8765)
     await server.start()
 
 
